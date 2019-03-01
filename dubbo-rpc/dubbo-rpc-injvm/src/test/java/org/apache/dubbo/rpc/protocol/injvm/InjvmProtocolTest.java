@@ -21,28 +21,36 @@ import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.ExtensionLoader;
 import org.apache.dubbo.rpc.Exporter;
+import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Protocol;
 import org.apache.dubbo.rpc.ProxyFactory;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * <code>ProxiesTest</code>
  */
 
 public class InjvmProtocolTest {
+
+    static{
+        InjvmProtocol injvm = InjvmProtocol.getInjvmProtocol();
+    }
+
     private Protocol protocol = ExtensionLoader.getExtensionLoader(Protocol.class).getAdaptiveExtension();
     private ProxyFactory proxy = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
     private List<Exporter<?>> exporters = new ArrayList<Exporter<?>>();
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         for (Exporter<?> exporter : exporters) {
             exporter.unexport();
@@ -53,11 +61,17 @@ public class InjvmProtocolTest {
     @Test
     public void testLocalProtocol() throws Exception {
         DemoService service = new DemoServiceImpl();
-        Exporter<?> exporter = protocol.export(proxy.getInvoker(service, DemoService.class, URL.valueOf("injvm://127.0.0.1/TestService").addParameter(Constants.INTERFACE_KEY, DemoService.class.getName())));
+        Invoker<?> invoker = proxy.getInvoker(service, DemoService.class, URL.valueOf("injvm://127.0.0.1/TestService").addParameter(Constants.INTERFACE_KEY, DemoService.class.getName()));
+        assertTrue(invoker.isAvailable());
+        Exporter<?> exporter = protocol.export(invoker);
         exporters.add(exporter);
         service = proxy.getProxy(protocol.refer(DemoService.class, URL.valueOf("injvm://127.0.0.1/TestService").addParameter(Constants.INTERFACE_KEY, DemoService.class.getName())));
         assertEquals(service.getSize(new String[]{"", "", ""}), 3);
         service.invoke("injvm://127.0.0.1/TestService", "invoke");
+
+        InjvmInvoker injvmInvoker = new InjvmInvoker(DemoService.class, URL.valueOf("injvm://127.0.0.1/TestService"),null,new HashMap<String, Exporter<?>>());
+        assertFalse(injvmInvoker.isAvailable());
+
     }
 
     @Test
@@ -74,6 +88,19 @@ public class InjvmProtocolTest {
         url = url.addParameter(Constants.GROUP_KEY, "*")
                 .addParameter(Constants.VERSION_KEY, "*");
         assertTrue(InjvmProtocol.getInjvmProtocol().isInjvmRefer(url));
+
+        url = URL.valueOf("fake://127.0.0.1/TestService").addParameter(Constants.SCOPE_KEY, Constants.SCOPE_LOCAL);
+        assertTrue(InjvmProtocol.getInjvmProtocol().isInjvmRefer(url));
+
+        url = URL.valueOf("fake://127.0.0.1/TestService").addParameter(Constants.LOCAL_PROTOCOL,true);
+        assertTrue(InjvmProtocol.getInjvmProtocol().isInjvmRefer(url));
+
+        url = URL.valueOf("fake://127.0.0.1/TestService").addParameter(Constants.SCOPE_KEY, Constants.SCOPE_REMOTE);
+        assertFalse(InjvmProtocol.getInjvmProtocol().isInjvmRefer(url));
+
+        url = URL.valueOf("fake://127.0.0.1/TestService").addParameter(Constants.GENERIC_KEY, true);
+        assertFalse(InjvmProtocol.getInjvmProtocol().isInjvmRefer(url));
+
     }
 
 }

@@ -17,20 +17,22 @@
 package org.apache.dubbo.common.utils;
 
 
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-import static junit.framework.TestCase.assertFalse;
-import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -102,22 +104,21 @@ public class NetUtilsTest {
 
     @Test
     public void testIsValidAddress() throws Exception {
-        assertFalse(NetUtils.isValidAddress((InetAddress) null));
         InetAddress address = mock(InetAddress.class);
         when(address.isLoopbackAddress()).thenReturn(true);
-        assertFalse(NetUtils.isValidAddress(address));
+        assertFalse(NetUtils.isValidV4Address(address));
         address = mock(InetAddress.class);
         when(address.getHostAddress()).thenReturn("localhost");
-        assertFalse(NetUtils.isValidAddress(address));
+        assertFalse(NetUtils.isValidV4Address(address));
         address = mock(InetAddress.class);
         when(address.getHostAddress()).thenReturn("0.0.0.0");
-        assertFalse(NetUtils.isValidAddress(address));
+        assertFalse(NetUtils.isValidV4Address(address));
         address = mock(InetAddress.class);
         when(address.getHostAddress()).thenReturn("127.0.0.1");
-        assertFalse(NetUtils.isValidAddress(address));
+        assertFalse(NetUtils.isValidV4Address(address));
         address = mock(InetAddress.class);
         when(address.getHostAddress()).thenReturn("1.2.3.4");
-        assertTrue(NetUtils.isValidAddress(address));
+        assertTrue(NetUtils.isValidV4Address(address));
     }
 
     @Test
@@ -129,7 +130,6 @@ public class NetUtilsTest {
     public void testGetLocalAddress() throws Exception {
         InetAddress address = NetUtils.getLocalAddress();
         assertNotNull(address);
-        assertTrue(NetUtils.isValidLocalHost(address.getHostAddress()));
     }
 
     @Test
@@ -179,5 +179,32 @@ public class NetUtilsTest {
     public void testToURL() throws Exception {
         String url = NetUtils.toURL("dubbo", "host", 1234, "foo");
         assertThat(url, equalTo("dubbo://host:1234/foo"));
+    }
+
+    @Test
+    public void testIsValidV6Address() {
+        String saved = System.getProperty("java.net.preferIPv6Addresses", "false");
+        System.setProperty("java.net.preferIPv6Addresses", "true");
+        InetAddress address = NetUtils.getLocalAddress();
+        if (address instanceof Inet6Address) {
+            assertThat(NetUtils.isValidV6Address((Inet6Address) address), equalTo(true));
+        }
+        System.setProperty("java.net.preferIPv6Addresses", saved);
+    }
+
+    /**
+     * Mockito starts to support mocking final classes since 2.1.0
+     * see https://github.com/mockito/mockito/wiki/What%27s-new-in-Mockito-2#unmockable
+     * But enable it will cause other UT to fail.
+     * Therefore currently disabling this UT.
+     */
+    @Disabled
+    @Test
+    public void testNormalizeV6Address() {
+        Inet6Address address = mock(Inet6Address.class);
+        when(address.getHostAddress()).thenReturn("fe80:0:0:0:894:aeec:f37d:23e1%en0");
+        when(address.getScopeId()).thenReturn(5);
+        InetAddress normalized = NetUtils.normalizeV6Address(address);
+        assertThat(normalized.getHostAddress(), equalTo("fe80:0:0:0:894:aeec:f37d:23e1%5"));
     }
 }

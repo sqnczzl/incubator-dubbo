@@ -18,13 +18,12 @@
 package com.alibaba.dubbo.rpc;
 
 import org.apache.dubbo.common.URL;
-import org.apache.dubbo.rpc.Invocation;
-import org.apache.dubbo.rpc.RpcException;
 
 @Deprecated
 public interface Invoker<T> extends org.apache.dubbo.rpc.Invoker<T> {
 
-    Result invoke(Invocation invocation) throws RpcException;
+    @Override
+    Result invoke(org.apache.dubbo.rpc.Invocation invocation) throws RpcException;
 
     default org.apache.dubbo.rpc.Invoker<T> getOriginal() {
         return null;
@@ -44,8 +43,8 @@ public interface Invoker<T> extends org.apache.dubbo.rpc.Invoker<T> {
         }
 
         @Override
-        public Result invoke(Invocation invocation) throws RpcException {
-            return new Result.CompatibleResult(invoker.invoke(invocation));
+        public Result invoke(org.apache.dubbo.rpc.Invocation invocation) throws RpcException {
+            return new Result.CompatibleResult(invoker.invoke(((Invocation) invocation).getOriginal()));
         }
 
         @Override
@@ -63,6 +62,7 @@ public interface Invoker<T> extends org.apache.dubbo.rpc.Invoker<T> {
             invoker.destroy();
         }
 
+        @Override
         public org.apache.dubbo.rpc.Invoker<T> getOriginal() {
             return invoker;
         }

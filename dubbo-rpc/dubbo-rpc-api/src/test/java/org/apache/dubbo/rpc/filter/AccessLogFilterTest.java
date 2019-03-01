@@ -24,9 +24,9 @@ import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.support.MockInvocation;
 import org.apache.dubbo.rpc.support.MyInvoker;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * AccessLogFilterTest.java
@@ -57,7 +57,7 @@ public class AccessLogFilterTest {
 
     @Test
     public void testCustom() {
-        URL url = URL.valueOf("test://test:11/test?accesslog=alibaba");
+        URL url = URL.valueOf("test://test:11/test?accesslog=custom-access.log");
         Invoker<AccessLogFilterTest> invoker = new MyInvoker<AccessLogFilterTest>(url);
         Invocation invocation = new MockInvocation();
         accessLogFilter.invoke(invoker, invocation);
