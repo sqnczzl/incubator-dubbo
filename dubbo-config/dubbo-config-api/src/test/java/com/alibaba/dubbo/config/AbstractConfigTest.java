@@ -21,6 +21,7 @@ import com.alibaba.dubbo.common.utils.ConfigUtils;
 import com.alibaba.dubbo.config.api.Greeting;
 import com.alibaba.dubbo.config.support.Parameter;
 import junit.framework.TestCase;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.lang.annotation.ElementType;
@@ -31,6 +32,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+
+import static org.junit.Assert.assertThat;
 
 public class AbstractConfigTest {
 
@@ -195,7 +198,8 @@ public class AbstractConfigTest {
     @Test
     public void checkNameHasSymbol() throws Exception {
         try {
-            AbstractConfig.checkNameHasSymbol("hello", ":*,/-0123abcdABCD");
+            AbstractConfig.checkNameHasSymbol("hello", ":*,/ -0123\tabcdABCD");
+            AbstractConfig.checkNameHasSymbol("mock", "force:return world");
         } catch (Exception e) {
             TestCase.fail("the value should be legal.");
         }
@@ -267,8 +271,8 @@ public class AbstractConfigTest {
         TestCase.assertEquals(2, annotationConfig.getParameters().size());
         TestCase.assertEquals("v1", annotationConfig.getParameters().get("k1"));
         TestCase.assertEquals("v2", annotationConfig.getParameters().get("k2"));
-        TestCase.assertEquals("<dubbo:annotation filter=\"f1, f2\" listener=\"l1, l2\" />",
-                annotationConfig.toString());
+        assertThat(annotationConfig.toString(), Matchers.containsString("filter=\"f1, f2\" "));
+        assertThat(annotationConfig.toString(), Matchers.containsString("listener=\"l1, l2\" "));
     }
 
     private static class PropertiesConfig extends AbstractConfig {
@@ -471,6 +475,16 @@ public class AbstractConfigTest {
         String[] listener() default {};
 
         String[] parameters() default {};
+
+        ConfigField[] configFields() default {};
+
+        ConfigField configField() default @ConfigField;
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.ANNOTATION_TYPE})
+    public @interface ConfigField {
+        String value() default "";
     }
 
     private static class AnnotationConfig extends AbstractConfig {
@@ -478,6 +492,7 @@ public class AbstractConfigTest {
         private String filter;
         private String listener;
         private Map<String, String> parameters;
+        private String[] configFields;
 
         public Class getInterface() {
             return interfaceClass;
@@ -509,6 +524,14 @@ public class AbstractConfigTest {
 
         public void setParameters(Map<String, String> parameters) {
             this.parameters = parameters;
+        }
+
+        public String[] getConfigFields() {
+            return configFields;
+        }
+
+        public void setConfigFields(String[] configFields) {
+            this.configFields = configFields;
         }
     }
 }

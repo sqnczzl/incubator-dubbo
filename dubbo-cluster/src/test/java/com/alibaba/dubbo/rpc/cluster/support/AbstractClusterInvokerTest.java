@@ -23,6 +23,7 @@ import com.alibaba.dubbo.common.utils.NetUtils;
 import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.Result;
+import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.RpcInvocation;
 import com.alibaba.dubbo.rpc.cluster.Directory;
@@ -90,23 +91,23 @@ public class AbstractClusterInvokerTest {
 
         given(invoker1.isAvailable()).willReturn(false);
         given(invoker1.getInterface()).willReturn(IHelloService.class);
-        given(invoker1.getUrl()).willReturn(turl.addParameter("name", "invoker1"));
+        given(invoker1.getUrl()).willReturn(turl.setPort(1).addParameter("name", "invoker1"));
 
         given(invoker2.isAvailable()).willReturn(true);
         given(invoker2.getInterface()).willReturn(IHelloService.class);
-        given(invoker2.getUrl()).willReturn(turl.addParameter("name", "invoker2"));
+        given(invoker2.getUrl()).willReturn(turl.setPort(2).addParameter("name", "invoker2"));
 
         given(invoker3.isAvailable()).willReturn(false);
         given(invoker3.getInterface()).willReturn(IHelloService.class);
-        given(invoker3.getUrl()).willReturn(turl.addParameter("name", "invoker3"));
+        given(invoker3.getUrl()).willReturn(turl.setPort(3).addParameter("name", "invoker3"));
 
         given(invoker4.isAvailable()).willReturn(true);
         given(invoker4.getInterface()).willReturn(IHelloService.class);
-        given(invoker4.getUrl()).willReturn(turl.addParameter("name", "invoker4"));
+        given(invoker4.getUrl()).willReturn(turl.setPort(4).addParameter("name", "invoker4"));
 
         given(invoker5.isAvailable()).willReturn(false);
         given(invoker5.getInterface()).willReturn(IHelloService.class);
-        given(invoker5.getUrl()).willReturn(turl.addParameter("name", "invoker5"));
+        given(invoker5.getUrl()).willReturn(turl.setPort(5).addParameter("name", "invoker5"));
 
         given(mockedInvoker1.isAvailable()).willReturn(false);
         given(mockedInvoker1.getInterface()).willReturn(IHelloService.class);
@@ -130,6 +131,31 @@ public class AbstractClusterInvokerTest {
             }
         };
 
+    }
+
+    @Test
+    public void testBindingAttachment() {
+        final String attachKey = "attach";
+        final String attachValue = "value";
+
+        // setup attachment
+        RpcContext.getContext().setAttachment(attachKey, attachValue);
+        Map<String, String> attachments = RpcContext.getContext().getAttachments();
+        Assert.assertTrue("set attachment failed!", attachments != null && attachments.size() == 1);
+
+        cluster = new AbstractClusterInvoker(dic) {
+            @Override
+            protected Result doInvoke(Invocation invocation, List invokers, LoadBalance loadbalance)
+                    throws RpcException {
+                // attachment will be bind to invocation
+                String value = invocation.getAttachment(attachKey);
+                Assert.assertTrue("binding attachment failed!", value != null && value.equals(attachValue));
+                return null;
+            }
+        };
+
+        // invoke
+        cluster.invoke(invocation);
     }
 
     @Test

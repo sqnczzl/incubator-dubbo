@@ -635,6 +635,14 @@ public class Constants {
 
     public static final String MULTICAST = "multicast";
 
+    public static final String SERVICE_IMPL_CLASS = "service.classimpl";
+
+    public static final String TAG_KEY = "dubbo.tag";
+
+    public static final String FORCE_USE_TAG = "dubbo.force.tag";
+
+    public static final String TELNET = "telnet";
+
     /*
      * private Constants(){ }
      */
